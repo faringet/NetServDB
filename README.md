@@ -73,7 +73,7 @@ Network Service with Database - это консольное приложение
 ## 🛠️ Установка и использование
 
 - Клонируйте репозиторий
-`git clone` https://github.com/ваш-логин/NetServDB.git
+`git clone` https://github.com/faringet/NetServDB.git
 
 - Перейдите в каталог проекта
 cd NetServDB
