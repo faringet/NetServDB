@@ -2,7 +2,6 @@ package initializers
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"log"
@@ -12,15 +11,9 @@ var RedisClient *redis.Client
 
 func ConnectToRedis() {
 
-	// Получаем адрес редиса через параметры `-host` и `-port`, если их нет - тогда дефолт
-	host := flag.String("host", "localhost", "Redis host")
-	port := flag.String("port", "6379", "Redis port")
-	flag.Parse()
-	redisAddr := *host + ":" + *port
-
 	// Новый клиент Redis
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     redisAddr,
+		Addr:     "redis:6379",
 		Password: "",
 		DB:       0,
 	})

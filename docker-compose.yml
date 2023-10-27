@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  shortener:
+    image: faringet/netservdb:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+
+
+  postgres:
+    image: postgres:12
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=testovoe
+    ports:
+      - "5434:5434"
+
+  redis:
+    image: redis:6.0.9
+    ports:
+      - "6379:6379"
