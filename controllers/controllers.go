@@ -4,7 +4,6 @@ import (
 	"NetServDB/initializers"
 	"NetServDB/logging"
 	"NetServDB/models"
-	"context"
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/hex"
@@ -27,8 +26,7 @@ func RedisIncr(c *gin.Context) {
 	logger.Info(fmt.Sprintf("Received request - Key:%s Value:%d", request.Key, request.Value))
 
 	// Инкрементируем значение в Redis
-	ctx := context.Background()
-	updatedValue, err := initializers.RedisClient.IncrBy(ctx, request.Key, int64(request.Value)).Result()
+	updatedValue, err := initializers.RedisClient.IncrBy(c, request.Key, int64(request.Value)).Result()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -42,8 +40,8 @@ func RedisIncr(c *gin.Context) {
 func RedisRefresh(c *gin.Context) {
 	logger := logging.GetLogger()
 
-	ctx := context.Background()
-	initializers.RedisClient.Del(ctx, "age")
+	initializers.RedisClient.Del(c, "age")
+
 	initializers.SetRedisKey()
 
 	// Отвечаем и логгируем что редис обновлен
