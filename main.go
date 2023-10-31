@@ -25,13 +25,30 @@ func init() {
 
 func main() {
 	r := gin.Default()
+	logger := logging.GetLogger()
+	redisClient := initializers.RedisClient
+	db := initializers.DB
 
-	r.POST("/redis/incr", controllers.RedisIncr)
-	r.POST("/sign/hmacsha512", controllers.SignHMACSHA512)
-	r.POST("/postgres/users", controllers.AddUser)
+	r.POST("/redis/incr", func(c *gin.Context) {
+		controllers.RedisIncr(c, logger, redisClient)
+	})
 
-	r.DELETE("/redis/del", middleware.Authenticate(), controllers.RedisRefresh)
-	r.DELETE("/postgres/users", middleware.Authenticate(), controllers.TableRefresh)
+	r.POST("/sign/hmacsha512", func(c *gin.Context) {
+		controllers.SignHMACSHA512(c, logger)
+	})
+
+	r.POST("/postgres/users", func(c *gin.Context) {
+		controllers.AddUser(c, logger, db)
+	})
+
+	r.DELETE("/redis/del", middleware.Authenticate(), func(c *gin.Context) {
+		controllers.RedisRefresh(c, logger, redisClient)
+	})
+
+	r.DELETE("/postgres/users", middleware.Authenticate(), func(c *gin.Context) {
+		controllers.TableRefresh(c, logger, db)
+	})
+
 	r.Run()
 
 	// чтобы можно было завершить программу из терминала по Ctrl + C когда запускаем через параметры

@@ -9,11 +9,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
+	"gorm.io/gorm"
 	"net/http"
 )
 
-func RedisIncr(c *gin.Context) {
-	logger := logging.GetLogger()
+func RedisIncr(c *gin.Context, logger *logging.Logger, redisClient *redis.Client) {
 	var request models.IncrRequest
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -26,7 +27,7 @@ func RedisIncr(c *gin.Context) {
 	logger.Info(fmt.Sprintf("Received request - Key:%s Value:%d", request.Key, request.Value))
 
 	// Инкрементируем значение в Redis
-	updatedValue, err := initializers.RedisClient.IncrBy(c, request.Key, int64(request.Value)).Result()
+	updatedValue, err := redisClient.IncrBy(c, request.Key, int64(request.Value)).Result()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -37,12 +38,10 @@ func RedisIncr(c *gin.Context) {
 	logger.Info(fmt.Sprintf("UpdatedValue:%d", updatedValue))
 }
 
-func RedisRefresh(c *gin.Context) {
-	logger := logging.GetLogger()
+func RedisRefresh(c *gin.Context, logger *logging.Logger, redisClient *redis.Client) {
 
-	initializers.RedisClient.Del(c, "age")
-
-	initializers.SetRedisKey()
+	redisClient.Del(c, "age")
+	initializers.SetRedisKey() //todo придумать как уменьшить связанность
 
 	// Отвечаем и логгируем что редис обновлен
 	c.JSON(http.StatusOK, gin.H{"REDIS successfully refreshed": "OK"})
@@ -50,8 +49,7 @@ func RedisRefresh(c *gin.Context) {
 
 }
 
-func SignHMACSHA512(c *gin.Context) {
-	logger := logging.GetLogger()
+func SignHMACSHA512(c *gin.Context, logger *logging.Logger) {
 	var request models.Ihmacsha512Request
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -77,8 +75,7 @@ func SignHMACSHA512(c *gin.Context) {
 	logger.Info(fmt.Sprintf("signature:%s", signatureHex))
 }
 
-func AddUser(c *gin.Context) {
-	logger := logging.GetLogger()
+func AddUser(c *gin.Context, logger *logging.Logger, db *gorm.DB) {
 	var request models.Users
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -96,7 +93,7 @@ func AddUser(c *gin.Context) {
 	// Логгируем юзера
 	logger.Info(fmt.Sprintf("new user - Name:%s Age:%d", request.Name, request.Age))
 
-	result := initializers.DB.Create(&user)
+	result := db.Create(&user)
 
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
@@ -108,9 +105,7 @@ func AddUser(c *gin.Context) {
 	logger.Info(fmt.Sprintf("user's id:%d", user.ID))
 }
 
-func TableRefresh(c *gin.Context) {
-	logger := logging.GetLogger()
-	db := initializers.DB
+func TableRefresh(c *gin.Context, logger *logging.Logger, db *gorm.DB) {
 
 	// Так как GORM не умеет дропать таблицы придется выполнить SQL-запрос руками
 	if err := db.Exec("DROP TABLE IF EXISTS users;").Error; err != nil {
@@ -119,6 +114,6 @@ func TableRefresh(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Table 'users' refreshed successfully"})
-	initializers.DB.AutoMigrate(&models.Users{})
+	db.AutoMigrate(&models.Users{})
 	logger.Info("Table 'users' refreshed successfully")
 }
