@@ -2,8 +2,9 @@ package tests
 
 import (
 	"NetServDB/controllers"
+	"NetServDB/domain"
 	"NetServDB/initializers"
-	"NetServDB/models"
+	http2 "NetServDB/transport/http"
 	"bytes"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
@@ -16,7 +17,7 @@ import (
 func TestRedisIncrJsonOk(t *testing.T) {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&models.Users{})
+	initializers.DB.AutoMigrate(&domain.Users{})
 	initializers.ConnectToRedis()
 	initializers.SetRedisKey()
 
@@ -48,7 +49,7 @@ func TestRedisIncrJsonOk(t *testing.T) {
 func TestRedisIncrJsonNotOk(t *testing.T) {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&models.Users{})
+	initializers.DB.AutoMigrate(&domain.Users{})
 	initializers.ConnectToRedis()
 	initializers.SetRedisKey()
 
@@ -67,7 +68,7 @@ func TestRedisIncrJsonNotOk(t *testing.T) {
 func TestSignHMACSHA512JsonOk(t *testing.T) {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&models.Users{})
+	initializers.DB.AutoMigrate(&domain.Users{})
 	initializers.ConnectToRedis()
 	initializers.SetRedisKey()
 
@@ -99,7 +100,7 @@ func TestSignHMACSHA512JsonOk(t *testing.T) {
 func TestSignHMACSHA512JsonNotOk(t *testing.T) {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&models.Users{})
+	initializers.DB.AutoMigrate(&domain.Users{})
 	initializers.ConnectToRedis()
 	initializers.SetRedisKey()
 
@@ -118,12 +119,12 @@ func TestSignHMACSHA512JsonNotOk(t *testing.T) {
 func TestAddUserJsonOk(t *testing.T) {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&models.Users{})
+	initializers.DB.AutoMigrate(&domain.Users{})
 	initializers.ConnectToRedis()
 	initializers.SetRedisKey()
 
 	router := gin.New()
-	router.POST("/postgres/users", controllers.AddUser)
+	router.POST("/postgres/users", http2.AddUser)
 
 	requestBody := map[string]interface{}{
 		"name": "Alex",
@@ -149,12 +150,12 @@ func TestAddUserJsonOk(t *testing.T) {
 func TestAddUserJsonNotOk(t *testing.T) {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&models.Users{})
+	initializers.DB.AutoMigrate(&domain.Users{})
 	initializers.ConnectToRedis()
 	initializers.SetRedisKey()
 
 	router := gin.New()
-	router.POST("/postgres/users", controllers.AddUser)
+	router.POST("/postgres/users", http2.AddUser)
 
 	emptyReq, err := http.NewRequest(http.MethodPost, "/postgres/users", bytes.NewBuffer(nil))
 	if err != nil {

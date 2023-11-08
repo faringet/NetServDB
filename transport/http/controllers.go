@@ -1,12 +1,9 @@
-package controllers
+package http
 
 import (
+	"NetServDB/domain"
 	"NetServDB/initializers"
 	"NetServDB/logging"
-	"NetServDB/models"
-	"crypto/hmac"
-	"crypto/sha512"
-	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -14,20 +11,32 @@ import (
 	"net/http"
 )
 
-func RedisIncr(c *gin.Context, logger *logging.Logger, redisClient *redis.Client) {
-	var request models.IncrRequest
+type RedisController struct {
+	redisClient *redis.Client
+	logger      *logging.Logger
+}
+
+func NewRedisController(logger *logging.Logger, redisClient *redis.Client) *RedisController {
+	return &RedisController{
+		redisClient: redisClient,
+		logger:      logger,
+	}
+}
+
+func (rc *RedisController) RedisIncr(c *gin.Context) {
+	var request IncrRequest
 
 	if err := c.ShouldBindJSON(&request); err != nil {
-		logger.Error("invalid input format")
+		rc.logger.Error("invalid input format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Логгируем принятые значения
-	logger.Info(fmt.Sprintf("Received request - Key:%s Value:%d", request.Key, request.Value))
+	rc.logger.Info(fmt.Sprintf("Received request - Key:%s Value:%d", request.Key, request.Value))
 
 	// Инкрементируем значение в Redis
-	updatedValue, err := redisClient.IncrBy(c, request.Key, int64(request.Value)).Result()
+	updatedValue, err := rc.redisClient.IncrBy(c, request.Key, int64(request.Value)).Result()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -35,10 +44,10 @@ func RedisIncr(c *gin.Context, logger *logging.Logger, redisClient *redis.Client
 
 	// Возвращаем и логгируем обновленное значение в виде JSON-ответа
 	c.JSON(http.StatusOK, gin.H{"value": updatedValue})
-	logger.Info(fmt.Sprintf("UpdatedValue:%d", updatedValue))
+	rc.logger.Info(fmt.Sprintf("UpdatedValue:%d", updatedValue))
 }
 
-func RedisRefresh(c *gin.Context, logger *logging.Logger, redisClient *redis.Client) {
+func (rc *RedisController) RedisRefresh(c *gin.Context, logger *logging.Logger, redisClient *redis.Client) {
 
 	redisClient.Del(c, "age")
 	initializers.SetRedisKey() //todo придумать как уменьшить связанность
@@ -49,43 +58,19 @@ func RedisRefresh(c *gin.Context, logger *logging.Logger, redisClient *redis.Cli
 
 }
 
-func SignHMACSHA512(c *gin.Context, logger *logging.Logger) {
-	var request models.Ihmacsha512Request
-
-	if err := c.ShouldBindJSON(&request); err != nil {
-		logger.Error("invalid input format")
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Создаем новый HMAC-SHA512 хэш с ключом
-	h := hmac.New(sha512.New, []byte(request.Key))
-
-	// Записываем данные для подписи
-	h.Write([]byte(request.Text))
-
-	// Вычисляем хэш
-	signature := h.Sum(nil)
-
-	// Преобразуем хэш в строку в шестнадцатеричном формате
-	signatureHex := hex.EncodeToString(signature)
-
-	// Возвращаем и логгируем HMAC-SHA512 подпись в виде JSON-ответа
-	c.JSON(http.StatusOK, gin.H{"signature": signatureHex})
-	logger.Info(fmt.Sprintf("signature:%s", signatureHex))
-}
-
 func AddUser(c *gin.Context, logger *logging.Logger, db *gorm.DB) {
-	var request models.Users
+	var request UserRequestAdd
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		logger.Error("invalid input format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	request.mapToDomain()
 
 	// Пишем юзера в БД
-	user := models.Users{
+	user := domain.Users{
 		Name: request.Name,
 		Age:  request.Age,
 	}
@@ -114,6 +99,6 @@ func TableRefresh(c *gin.Context, logger *logging.Logger, db *gorm.DB) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Table 'users' refreshed successfully"})
-	db.AutoMigrate(&models.Users{})
+	db.AutoMigrate(&domain.Users{})
 	logger.Info("Table 'users' refreshed successfully")
 }
