@@ -31,6 +31,7 @@ func main() {
 	db := initializers.DB
 
 	redController := http.NewRedisController(logger, redisClient)
+	userController := http.NewUserController(logger, db)
 
 	r.POST("/redis/incr", func(c *gin.Context) {
 		redController.RedisIncr(c)
@@ -41,15 +42,15 @@ func main() {
 	})
 
 	r.POST("/postgres/users", func(c *gin.Context) {
-		http.AddUser(c, logger, db)
+		userController.AddUser(c)
 	})
 
 	r.DELETE("/redis/del", middleware.Authenticate(), func(c *gin.Context) {
-		redController.RedisRefresh(c, logger, redisClient)
+		redController.RedisRefresh(c)
 	})
 
 	r.DELETE("/postgres/users", middleware.Authenticate(), func(c *gin.Context) {
-		http.TableRefresh(c, logger, db)
+		userController.TableRefresh(c)
 	})
 
 	r.Run()
