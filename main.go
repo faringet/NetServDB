@@ -2,10 +2,11 @@ package main
 
 import (
 	"NetServDB/controllers"
+	"NetServDB/domain"
 	"NetServDB/initializers"
 	"NetServDB/logging"
 	"NetServDB/middleware"
-	"NetServDB/models"
+	"NetServDB/transport/http"
 	"github.com/gin-gonic/gin"
 	"os"
 	"os/signal"
@@ -15,7 +16,7 @@ import (
 func init() {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&models.Users{})
+	initializers.DB.AutoMigrate(&domain.Users{})
 	initializers.ConnectToRedis()
 	initializers.SetRedisKey()
 
@@ -29,8 +30,10 @@ func main() {
 	redisClient := initializers.RedisClient
 	db := initializers.DB
 
+	redController := http.NewRedisController(logger, redisClient)
+
 	r.POST("/redis/incr", func(c *gin.Context) {
-		controllers.RedisIncr(c, logger, redisClient)
+		redController.RedisIncr(c)
 	})
 
 	r.POST("/sign/hmacsha512", func(c *gin.Context) {
@@ -38,15 +41,15 @@ func main() {
 	})
 
 	r.POST("/postgres/users", func(c *gin.Context) {
-		controllers.AddUser(c, logger, db)
+		http.AddUser(c, logger, db)
 	})
 
 	r.DELETE("/redis/del", middleware.Authenticate(), func(c *gin.Context) {
-		controllers.RedisRefresh(c, logger, redisClient)
+		redController.RedisRefresh(c, logger, redisClient)
 	})
 
 	r.DELETE("/postgres/users", middleware.Authenticate(), func(c *gin.Context) {
-		controllers.TableRefresh(c, logger, db)
+		http.TableRefresh(c, logger, db)
 	})
 
 	r.Run()
