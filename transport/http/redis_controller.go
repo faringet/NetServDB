@@ -1,23 +1,26 @@
 package http
 
 import (
-	"NetServDB/initializers"
 	"NetServDB/logging"
-	"NetServDB/pkg/myRedis"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-type RedisController struct {
-	redisService myRedis.RedisService
-	logger       *logging.Logger
+type Cache interface {
+	IncrementByKey(c *gin.Context, key string, value int64) (int64, error)
+	Refresh(c *gin.Context) error
 }
 
-func NewRedisController(logger *logging.Logger, redisService myRedis.RedisService) *RedisController {
+type RedisController struct {
+	cache  Cache
+	logger *logging.Logger
+}
+
+func NewRedisController(logger *logging.Logger, redisService Cache) *RedisController {
 	return &RedisController{
-		redisService: redisService,
-		logger:       logger,
+		cache:  redisService,
+		logger: logger,
 	}
 }
 
@@ -34,7 +37,7 @@ func (rc *RedisController) RedisIncr(c *gin.Context) {
 	rc.logger.Info(fmt.Sprintf("Received request - Key:%s Value:%d", request.Key, request.Value))
 
 	// Инкрементируем значение в Redis
-	updatedValue, err := rc.redisService.IncrementByKey(c, request.Key, int64(request.Value))
+	updatedValue, err := rc.cache.IncrementByKey(c, request.Key, int64(request.Value))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -47,8 +50,7 @@ func (rc *RedisController) RedisIncr(c *gin.Context) {
 
 func (rc *RedisController) RedisRefresh(c *gin.Context) {
 
-	err := rc.redisService.RefreshRedis(c)
-	initializers.SetRedisKey() //todo придумать как уменьшить связанность
+	err := rc.cache.Refresh(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

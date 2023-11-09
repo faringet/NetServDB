@@ -4,9 +4,11 @@ import (
 	"NetServDB/controllers"
 	"NetServDB/domain"
 	"NetServDB/initializers"
+	"NetServDB/initializers/redis"
 	"NetServDB/logging"
 	"NetServDB/middleware"
-	"NetServDB/pkg/myRedis"
+	"NetServDB/service"
+	"NetServDB/storage/dbredis"
 	"NetServDB/transport/http"
 	"github.com/gin-gonic/gin"
 	"os"
@@ -18,8 +20,6 @@ func init() {
 	initializers.LoadEnvVariables()
 	initializers.ConnectToDB()
 	initializers.DB.AutoMigrate(&domain.Users{})
-	initializers.ConnectToRedis()
-	initializers.SetRedisKey()
 
 	logger := logging.GetLogger()
 	logger.Info("Start app")
@@ -28,15 +28,23 @@ func init() {
 func main() {
 	r := gin.Default()
 	logger := logging.GetLogger()
-	redisClient := initializers.RedisClient
+
+	rCfg := redis.Config{}
+
+	redisClient, err := redis.NewRedis(rCfg)
+	if err != nil {
+		panic("can't panic")
+	}
+
 	db := initializers.DB
 
-	redisRepo := myRedis.NewRedisRepositoryImpl(redisClient)
-	redisService := myRedis.NewRedisService(redisRepo)
+	redisRepo := dbredis.NewRedisRepositoryImpl(redisClient)
+	cacheWorker := service.NewCacheWorker(redisRepo)
 
-	redController := http.NewRedisController(logger, *redisService)
+	redController := http.NewRedisController(logger, cacheWorker)
 	userController := http.NewUserController(logger, db)
 
+	//TODO: ошибка в пути
 	r.POST("/myRedis/incr", func(c *gin.Context) {
 		redController.RedisIncr(c)
 	})
