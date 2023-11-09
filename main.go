@@ -6,6 +6,7 @@ import (
 	"NetServDB/initializers"
 	"NetServDB/logging"
 	"NetServDB/middleware"
+	"NetServDB/pkg/myRedis"
 	"NetServDB/transport/http"
 	"github.com/gin-gonic/gin"
 	"os"
@@ -30,10 +31,13 @@ func main() {
 	redisClient := initializers.RedisClient
 	db := initializers.DB
 
-	redController := http.NewRedisController(logger, redisClient)
+	redisRepo := myRedis.NewRedisRepositoryImpl(redisClient)
+	redisService := myRedis.NewRedisService(redisRepo)
+
+	redController := http.NewRedisController(logger, *redisService)
 	userController := http.NewUserController(logger, db)
 
-	r.POST("/redis/incr", func(c *gin.Context) {
+	r.POST("/myRedis/incr", func(c *gin.Context) {
 		redController.RedisIncr(c)
 	})
 
@@ -45,7 +49,7 @@ func main() {
 		userController.AddUser(c)
 	})
 
-	r.DELETE("/redis/del", middleware.Authenticate(), func(c *gin.Context) {
+	r.DELETE("/myRedis/del", middleware.Authenticate(), func(c *gin.Context) {
 		redController.RedisRefresh(c)
 	})
 

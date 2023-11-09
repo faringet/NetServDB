@@ -1,1 +1,0 @@
-time="2023-10-26T18:48:02+03:00" level=error msg="invalid input format" func="NetServDB/controllers.AddUser()" file="controllers.go:87"
