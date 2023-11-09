@@ -8,6 +8,7 @@ import (
 	"NetServDB/logging"
 	"NetServDB/middleware"
 	"NetServDB/service"
+	"NetServDB/storage/dbpostgre"
 	"NetServDB/storage/dbredis"
 	"NetServDB/transport/http"
 	"github.com/gin-gonic/gin"
@@ -41,8 +42,11 @@ func main() {
 	redisRepo := dbredis.NewRedisRepositoryImpl(redisClient)
 	cacheWorker := service.NewCacheWorker(redisRepo)
 
+	dataBaseRepo := dbpostgre.NewDataBaseRepositoryImpl(db)
+	dataBaseWorker := service.NewDataBaseWorker(dataBaseRepo)
+
 	redController := http.NewRedisController(logger, cacheWorker)
-	userController := http.NewUserController(logger, db)
+	userController := http.NewUserController(logger, dataBaseWorker)
 
 	//TODO: ошибка в пути
 	r.POST("/myRedis/incr", func(c *gin.Context) {

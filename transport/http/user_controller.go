@@ -1,22 +1,25 @@
 package http
 
 import (
-	"NetServDB/domain"
 	"NetServDB/logging"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 )
 
+type Database interface {
+	Add(c *gin.Context, request *UserRequestAdd) (int64, error)
+	Refresh(c *gin.Context) error
+}
+
 type UserController struct {
-	dbClient *gorm.DB
+	database Database
 	logger   *logging.Logger
 }
 
-func NewUserController(logger *logging.Logger, dbClient *gorm.DB) *UserController {
+func NewUserController(logger *logging.Logger, database Database) *UserController {
 	return &UserController{
-		dbClient: dbClient,
+		database: database,
 		logger:   logger,
 	}
 }
@@ -30,38 +33,24 @@ func (uc *UserController) AddUser(c *gin.Context) {
 		return
 	}
 
-	request.mapToDomain()
-
-	// Пишем юзера в БД
-	user := domain.Users{
-		Name: request.Name,
-		Age:  request.Age,
-	}
-
-	// Логгируем юзера
-	uc.logger.Info(fmt.Sprintf("new user - Name:%s Age:%d", request.Name, request.Age))
-
-	result := uc.dbClient.Create(&user)
-
-	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+	userID, err := uc.database.Add(c, &request)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Возвращаем и логгируем id нового юзера в виде JSON-ответа
-	c.JSON(http.StatusOK, gin.H{"id": user.ID})
-	uc.logger.Info(fmt.Sprintf("user's id:%d", user.ID))
+	c.JSON(http.StatusOK, gin.H{"id": userID})
+	uc.logger.Info(fmt.Sprintf("user's id:%d", userID))
 }
 
 func (uc *UserController) TableRefresh(c *gin.Context) {
-
-	// Так как GORM не умеет дропать таблицы придется выполнить SQL-запрос руками
-	if err := uc.dbClient.Exec("DROP TABLE IF EXISTS users;").Error; err != nil {
+	// Вызываем метод сервиса для обновления таблицы, передавая контекст
+	if err := uc.database.Refresh(c); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Table 'users' refreshed successfully"})
-	uc.dbClient.AutoMigrate(&domain.Users{})
 	uc.logger.Info("Table 'users' refreshed successfully")
 }

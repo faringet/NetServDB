@@ -23,7 +23,7 @@ type UserRequestAdd struct {
 	Age  uint   `json:"age"`
 }
 
-func (u UserRequestAdd) mapToDomain() domain.Users {
+func (u UserRequestAdd) MapToDomain() domain.Users {
 	return domain.Users{
 		Model: gorm.Model{},
 		Name:  u.Name,
