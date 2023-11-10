@@ -2,6 +2,7 @@ package http
 
 import (
 	"NetServDB/domain"
+	validation "github.com/go-ozzo/ozzo-validation"
 	"gorm.io/gorm"
 )
 
@@ -29,4 +30,10 @@ func (u UserRequestAdd) MapToDomain() domain.Users {
 		Name:  u.Name,
 		Age:   u.Age,
 	}
+}
+
+func (u *UserRequestAdd) Validation() error {
+	return validation.ValidateStruct(&u,
+		validation.Field(&u.Name, validation.Required, validation.Length(5, 30)),
+	)
 }

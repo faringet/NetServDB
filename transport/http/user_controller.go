@@ -33,6 +33,12 @@ func (uc *UserController) AddUser(c *gin.Context) {
 		return
 	}
 
+	err := request.Validation()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	userID, err := uc.database.Add(c, &request)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
