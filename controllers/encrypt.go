@@ -20,6 +20,7 @@ func SignHMACSHA512(c *gin.Context, logger *logging.Logger) {
 		return
 	}
 
+	//TODO: Это выделить на слой сервиса
 	// Создаем новый HMAC-SHA512 хэш с ключом
 	h := hmac.New(sha512.New, []byte(request.Key))
 

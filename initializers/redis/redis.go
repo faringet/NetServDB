@@ -10,8 +10,8 @@ import (
 
 func NewRedis(cfg *config.Config) (*redis.Client, error) {
 	// Получаем адрес редиса через параметры `-host` и `-port`, если их нет - тогда дефолт
-	host := flag.String("host", cfg.RedisHost, "Redis host")
-	port := flag.String("port", cfg.RedisPort, "Redis port")
+	host := flag.String("host", cfg.Redis.Host, "Redis host")
+	port := flag.String("port", cfg.Redis.Port, "Redis port")
 	flag.Parse()
 	redisAddr := *host + ":" + *port
 

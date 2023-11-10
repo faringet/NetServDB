@@ -21,16 +21,13 @@ import (
 
 func init() {
 	initializers.LoadEnvVariables()
-
-	logger := logging.GetLogger()
-	logger.Info("Start app")
 }
 
 const configPath = "config/conf.yaml"
 
 func main() {
-	r := gin.Default()
 	logger := logging.GetLogger()
+	logger.Info("Start app")
 
 	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
@@ -42,7 +39,7 @@ func main() {
 		panic("can't panic")
 	}
 
-	db, err := postgre.NewDB(cfg)
+	db, postgCleanup, err := postgre.NewDB(cfg)
 	if err != nil {
 		panic("can't panic")
 	}
@@ -55,6 +52,9 @@ func main() {
 
 	redController := http.NewRedisController(logger, cacheWorker)
 	userController := http.NewUserController(logger, dataBaseWorker)
+
+	//TODO: при создании gin использовать cleanup()
+	r := gin.Default()
 
 	r.POST("/redis/incr", func(c *gin.Context) {
 		redController.RedisIncr(c)
@@ -78,11 +78,16 @@ func main() {
 
 	r.Run()
 
+	// TODO:  сделать grasfullshutdown
 	// чтобы можно было завершить программу из терминала по Ctrl + C когда запускаем через параметры
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	// Ожидаем сигнала завершения
 	<-signals
+
+	// Закрываем коннекты
+	err = postgCleanup()
+	logger.Error(err)
 
 }
