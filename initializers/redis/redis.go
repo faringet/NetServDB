@@ -1,20 +1,17 @@
 package redis
 
 import (
+	"NetServDB/config"
 	"context"
 	"flag"
 	"github.com/go-redis/redis/v8"
 	"log"
 )
 
-type Config struct {
-	//TODO: реализовать потом
-}
-
-func NewRedis(cfg Config) (*redis.Client, error) {
+func NewRedis(cfg *config.Config) (*redis.Client, error) {
 	// Получаем адрес редиса через параметры `-host` и `-port`, если их нет - тогда дефолт
-	host := flag.String("host", "localhost", "Redis host")
-	port := flag.String("port", "6379", "Redis port")
+	host := flag.String("host", cfg.RedisHost, "Redis host")
+	port := flag.String("port", cfg.RedisPort, "Redis port")
 	flag.Parse()
 	redisAddr := *host + ":" + *port
 

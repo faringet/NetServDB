@@ -1,9 +1,10 @@
 package main
 
 import (
+	"NetServDB/config"
 	"NetServDB/controllers"
-	"NetServDB/domain"
 	"NetServDB/initializers"
+	"NetServDB/initializers/postgre"
 	"NetServDB/initializers/redis"
 	"NetServDB/logging"
 	"NetServDB/middleware"
@@ -11,6 +12,7 @@ import (
 	"NetServDB/storage/dbpostgre"
 	"NetServDB/storage/dbredis"
 	"NetServDB/transport/http"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"os"
 	"os/signal"
@@ -19,25 +21,31 @@ import (
 
 func init() {
 	initializers.LoadEnvVariables()
-	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&domain.Users{})
 
 	logger := logging.GetLogger()
 	logger.Info("Start app")
 }
 
+const configPath = "config/conf.yaml"
+
 func main() {
 	r := gin.Default()
 	logger := logging.GetLogger()
 
-	rCfg := redis.Config{}
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		panic(fmt.Sprintf("can't panic: %v", err))
+	}
 
-	redisClient, err := redis.NewRedis(rCfg)
+	redisClient, err := redis.NewRedis(cfg)
 	if err != nil {
 		panic("can't panic")
 	}
 
-	db := initializers.DB
+	db, err := postgre.NewDB(cfg)
+	if err != nil {
+		panic("can't panic")
+	}
 
 	redisRepo := dbredis.NewRedisRepositoryImpl(redisClient)
 	cacheWorker := service.NewCacheWorker(redisRepo)
@@ -48,8 +56,7 @@ func main() {
 	redController := http.NewRedisController(logger, cacheWorker)
 	userController := http.NewUserController(logger, dataBaseWorker)
 
-	//TODO: ошибка в пути
-	r.POST("/myRedis/incr", func(c *gin.Context) {
+	r.POST("/redis/incr", func(c *gin.Context) {
 		redController.RedisIncr(c)
 	})
 
@@ -61,7 +68,7 @@ func main() {
 		userController.AddUser(c)
 	})
 
-	r.DELETE("/myRedis/del", middleware.Authenticate(), func(c *gin.Context) {
+	r.DELETE("/redis/del", middleware.Authenticate(), func(c *gin.Context) {
 		redController.RedisRefresh(c)
 	})
 
