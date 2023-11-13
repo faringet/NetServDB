@@ -50,11 +50,15 @@ func main() {
 	hmacController := http.NewHMACController(logger, hmacService)
 
 	router := http.NewRouter(redController, userController, hmacController, logger, cfg)
-
 	router.RegisterRoutes()
 
+	// создаем канал ошибок errChain
 	errChain := make(chan error, 1)
 
+	/*
+		Запускаем горутину, которая содержит код для запуска роутера
+		Если происходит ошибка при запуске, она отправляется в errChain
+	*/
 	go func() {
 		err = router.Start()
 		if err != nil {
@@ -64,11 +68,10 @@ func main() {
 		errChain <- err
 	}()
 
-	//TODO: при создании gin использовать cleanup()
-
-	// TODO:  сделать grasfullshutdown
-	// чтобы можно было завершить программу из терминала по Ctrl + C когда запускаем через параметры
-
+	/*
+		Еще одна асинхронная горутина, которая слушает сигналы прерывания (Ctrl+C) или завершения программы (SIGTERM)
+		При получении сигнала она отправляет ошибку в errChain
+	*/
 	go func() {
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
@@ -79,11 +82,9 @@ func main() {
 		errChain <- errors.New("get os signal" + s.String())
 	}()
 
+	// инфу из канала errChain сохраняем в errRun
 	errRun := <-errChain
 	logger.Error(errRun)
-
-	router.Clenup()
-	logger.Error("router cleanup: ", err)
 
 	//Закрываем коннекты
 	err = postgCleanup()

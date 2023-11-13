@@ -1,29 +1,29 @@
 package service
 
 import (
-	http2 "NetServDB/transport/http/model"
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/hex"
-	"github.com/gin-gonic/gin"
 )
 
 type HMACService interface {
-	SignHMACSHA512(c *gin.Context, request *http2.Ihmacsha512Request) (string, error)
+	SignHMACSHA512(text string, key string) (string, error)
 }
 
-type HMACServiceImpl struct{}
+type HMACServiceImpl struct {
+	repo HMACService
+}
 
 func NewHMACService() HMACService {
 	return &HMACServiceImpl{}
 }
 
-func (hs *HMACServiceImpl) SignHMACSHA512(c *gin.Context, request *http2.Ihmacsha512Request) (string, error) {
+func (hs *HMACServiceImpl) SignHMACSHA512(text string, key string) (string, error) {
 	// Создаем новый HMAC-SHA512 хэш с ключом
-	h := hmac.New(sha512.New, []byte(request.Key))
+	h := hmac.New(sha512.New, []byte(key))
 
 	// Записываем данные для подписи
-	h.Write([]byte(request.Text))
+	h.Write([]byte(text))
 
 	// Вычисляем хэш
 	signature := h.Sum(nil)

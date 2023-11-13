@@ -2,21 +2,24 @@ package http
 
 import (
 	"NetServDB/logging"
-	"NetServDB/service"
 	"NetServDB/transport/http/model"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
-type HMACController struct {
-	hmacService service.HMACService
-	logger      *logging.Logger
+type HMAC interface {
+	SignHMACSHA512(text string, key string) (string, error)
 }
 
-func NewHMACController(logger *logging.Logger, hmacService service.HMACService) *HMACController {
+type HMACController struct {
+	HMAC   HMAC
+	logger *logging.Logger
+}
+
+func NewHMACController(logger *logging.Logger, hmacService HMAC) *HMACController {
 	return &HMACController{
-		hmacService: hmacService,
-		logger:      logger,
+		HMAC:   hmacService,
+		logger: logger,
 	}
 }
 
@@ -36,7 +39,7 @@ func (hc *HMACController) SignHMACSHA512(c *gin.Context) {
 	}
 
 	// Вызываем метод сервиса для создания подписи HMAC-SHA512
-	signature, err := hc.hmacService.SignHMACSHA512(c, &request)
+	signature, err := hc.HMAC.SignHMACSHA512(request.Text, request.Key)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
