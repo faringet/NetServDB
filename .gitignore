@@ -1,0 +1,34 @@
+# Игнорим файл .env
+.env
+.golangci.yml
+docker-compose-local-all-services.yml
+Makefile
+
+# Игнорим все файлы логов в папке logs
+logs/
+
+config/conf.yaml
+
+# Игнорим бинарные файлы и файлы, сгенерированные go build (на будущее)
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Игнорим папки и файлы, созданные go test
+/tmp/
+*.test
+
+# Игнорим папку сборки (либо /bin либо /build)
+/bin/
+/build/
+
+# Игнорим папку с временными файлами
+/tmp/
+
+# Игнорим файлы идешки
+.idea/
+.vscode/

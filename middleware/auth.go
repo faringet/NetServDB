@@ -1,18 +1,18 @@
 package middleware
 
 import (
+	"NetServDB/config"
 	"NetServDB/logging"
 	"encoding/base64"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"os"
 	"strings"
 )
 
-func Authenticate() gin.HandlerFunc {
+func Authenticate(cfg *config.Config) gin.HandlerFunc {
 	logger := logging.GetLogger()
-	expectedUsername := os.Getenv("USERNAME")
-	expectedPassword := os.Getenv("PASSWORD")
+	expectedUsername := cfg.Auth.Username
+	expectedPassword := cfg.Auth.Password
 
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")

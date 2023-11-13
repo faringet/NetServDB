@@ -1,64 +1,94 @@
 package main
 
 import (
-	"NetServDB/controllers"
-	"NetServDB/domain"
-	"NetServDB/initializers"
+	"NetServDB/config"
+	"NetServDB/initializers/postgre"
+	"NetServDB/initializers/redis"
 	"NetServDB/logging"
-	"NetServDB/middleware"
+	"NetServDB/service"
+	"NetServDB/storage/dbpostgre"
+	"NetServDB/storage/dbredis"
 	"NetServDB/transport/http"
-	"github.com/gin-gonic/gin"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-func init() {
-	initializers.LoadEnvVariables()
-	initializers.ConnectToDB()
-	initializers.DB.AutoMigrate(&domain.Users{})
-	initializers.ConnectToRedis()
-	initializers.SetRedisKey()
-
-	logger := logging.GetLogger()
-	logger.Info("Start app")
-}
+const configPath = "config/conf.yaml"
 
 func main() {
-	r := gin.Default()
 	logger := logging.GetLogger()
-	redisClient := initializers.RedisClient
-	db := initializers.DB
+	logger.Info("Start app")
 
-	redController := http.NewRedisController(logger, redisClient)
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		panic(fmt.Sprintf("can't panic: %v", err))
+	}
 
-	r.POST("/redis/incr", func(c *gin.Context) {
-		redController.RedisIncr(c)
-	})
+	redisClient, redisCleanup, err := redis.NewRedis(cfg)
+	if err != nil {
+		panic("can't panic")
+	}
 
-	r.POST("/sign/hmacsha512", func(c *gin.Context) {
-		controllers.SignHMACSHA512(c, logger)
-	})
+	db, postgCleanup, err := postgre.NewDB(cfg)
+	if err != nil {
+		panic("can't panic")
+	}
 
-	r.POST("/postgres/users", func(c *gin.Context) {
-		http.AddUser(c, logger, db)
-	})
+	redisRepo := dbredis.NewRedisRepositoryImpl(redisClient)
+	cacheWorker := service.NewCacheWorker(redisRepo)
 
-	r.DELETE("/redis/del", middleware.Authenticate(), func(c *gin.Context) {
-		redController.RedisRefresh(c, logger, redisClient)
-	})
+	dataBaseRepo := dbpostgre.NewDataBaseRepositoryImpl(db)
+	dataBaseWorker := service.NewDataBaseWorker(dataBaseRepo)
 
-	r.DELETE("/postgres/users", middleware.Authenticate(), func(c *gin.Context) {
-		http.TableRefresh(c, logger, db)
-	})
+	redController := http.NewRedisController(logger, cacheWorker)
+	userController := http.NewUserController(logger, dataBaseWorker)
 
-	r.Run()
+	hmacService := service.NewHMACService()
+	hmacController := http.NewHMACController(logger, hmacService)
 
-	// чтобы можно было завершить программу из терминала по Ctrl + C когда запускаем через параметры
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	router := http.NewRouter(redController, userController, hmacController, logger, cfg)
+	router.RegisterRoutes()
 
-	// Ожидаем сигнала завершения
-	<-signals
+	// создаем канал ошибок errChain
+	errChain := make(chan error, 1)
 
+	/*
+		Запускаем горутину, которая содержит код для запуска роутера
+		Если происходит ошибка при запуске, она отправляется в errChain
+	*/
+	go func() {
+		err = router.Start()
+		if err != nil {
+			fmt.Print("exit router start with error:", err)
+		}
+
+		errChain <- err
+	}()
+
+	/*
+		Еще одна асинхронная горутина, которая слушает сигналы прерывания (Ctrl+C) или завершения программы (SIGTERM)
+		При получении сигнала она отправляет ошибку в errChain
+	*/
+	go func() {
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+		fmt.Print("\t<-signals")
+		//Ожидаем сигнала завершения
+		s := <-signals
+
+		errChain <- errors.New("get os signal" + s.String())
+	}()
+
+	// инфу из канала errChain сохраняем в errRun
+	errRun := <-errChain
+	logger.Error(errRun)
+
+	//Закрываем коннекты
+	err = postgCleanup()
+	logger.Error("postgres cleanup: ", err)
+	err = redisCleanup()
+	logger.Error("redis cleanup: ", err)
 }
