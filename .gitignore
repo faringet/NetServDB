@@ -1,5 +1,8 @@
 # Игнорим файл .env
 .env
+.golangci.yml
+docker-compose-local-all-services.yml
+Makefile
 
 # Игнорим все файлы логов в папке logs
 logs/
