@@ -1,6 +1,12 @@
-PORT: 3000
-DB_URL: "host=localhost user=postgres password=skyrim dbname=testovoe port=5432 sslmode=disable"
-USERNAME: username
-PASSWORD: password
-REDIS_HOST: localhost
-REDIS_PORT: 6379
+PORT: localhost:3000
+
+AUTH:
+  USERNAME: username
+  PASSWORD:
+
+REDIS:
+  HOST: localhost
+  PORT: 6379
+
+POSTGRE:
+  DB_URL: "host=localhost user=postgres password= dbname=testovoe port=5432 sslmode=disable"

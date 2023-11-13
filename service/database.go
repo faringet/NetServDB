@@ -2,7 +2,6 @@ package service
 
 import (
 	"NetServDB/domain"
-	"NetServDB/transport/http"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,7 +20,7 @@ func NewDataBaseWorker(repo DataBaseRepository) *DataBaseWorker {
 	}
 }
 
-func (dw *DataBaseWorker) Add(c *gin.Context, request *http.UserRequestAdd) (int64, error) { //
+func (dw *DataBaseWorker) Add(c *gin.Context, request *domain.UserRequestAdd) (int64, error) { //
 	user := request.MapToDomain()
 
 	// Вызываем метод репозитория для добавления пользователя

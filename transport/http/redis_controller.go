@@ -1,6 +1,7 @@
 package http
 
 import (
+	"NetServDB/domain"
 	"NetServDB/logging"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -25,10 +26,16 @@ func NewRedisController(logger *logging.Logger, redisService Cache) *RedisContro
 }
 
 func (rc *RedisController) RedisIncr(c *gin.Context) {
-	var request IncrRequest
+	var request domain.IncrRequest
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		rc.logger.Error("invalid input format")
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := request.ValidationRedis()
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

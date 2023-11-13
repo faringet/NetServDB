@@ -6,17 +6,24 @@ import (
 )
 
 type Config struct {
-	Port     int    `mapstructure:"PORT"`
-	DBURL    string `mapstructure:"DB_URL"`
-	Username string `mapstructure:"USERNAME"`
-	Password string `mapstructure:"PASSWORD"`
-
-	Redis Redis `mapstructure:"REDIS"`
+	Port    string  `mapstructure:"PORT"`
+	Redis   Redis   `mapstructure:"REDIS"`
+	Postgre Postgre `mapstructure:"POSTGRE"`
+	Auth    Auth    `mapstructure:"AUTH"`
 }
 
 type Redis struct {
 	Host string `mapstructure:"HOST"`
 	Port string `mapstructure:"PORT"`
+}
+
+type Postgre struct {
+	DbURL string `mapstructure:"DB_URL"`
+}
+
+type Auth struct {
+	Username string `mapstructure:"USERNAME"`
+	Password string `mapstructure:"PASSWORD"`
 }
 
 func LoadConfig(configPath string) (*Config, error) {
