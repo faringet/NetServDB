@@ -20,11 +20,9 @@ func NewDataBaseWorker(repo DataBaseRepository) *DataBaseWorker {
 	}
 }
 
-func (dw *DataBaseWorker) Add(c *gin.Context, request *domain.UserRequestAdd) (int64, error) { //
-	user := request.MapToDomain()
-
+func (dw *DataBaseWorker) Add(c *gin.Context, user *domain.Users) (int64, error) { //
 	// Вызываем метод репозитория для добавления пользователя
-	userID, err := dw.repo.AddUser(c, &user)
+	userID, err := dw.repo.AddUser(c, user)
 	if err != nil {
 		return 0, err
 	}

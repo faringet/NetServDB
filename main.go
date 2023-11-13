@@ -9,7 +9,11 @@ import (
 	"NetServDB/storage/dbpostgre"
 	"NetServDB/storage/dbredis"
 	"NetServDB/transport/http"
+	"errors"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 const configPath = "config/conf.yaml"
@@ -46,35 +50,44 @@ func main() {
 	hmacController := http.NewHMACController(logger, hmacService)
 
 	router := http.NewRouter(redController, userController, hmacController, logger, cfg)
+
 	router.RegisterRoutes()
+
+	errChain := make(chan error, 1)
+
+	go func() {
+		err = router.Start()
+		if err != nil {
+			fmt.Print("exit router start with error:", err)
+		}
+
+		errChain <- err
+	}()
 
 	//TODO: при создании gin использовать cleanup()
 
 	// TODO:  сделать grasfullshutdown
 	// чтобы можно было завершить программу из терминала по Ctrl + C когда запускаем через параметры
-	//signals := make(chan os.Signal, 1)
-	//signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
-	// Ожидаем сигнала завершения
-	//<-signals
+	go func() {
+		signals := make(chan os.Signal, 1)
+		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+		fmt.Print("\t<-signals")
+		//Ожидаем сигнала завершения
+		s := <-signals
 
-	// Закрываем коннекты
-	//err = postgCleanup()
-	//err = redisCleanup()
-	//logger.Error(err)
-
-	defer func() {
-		postgErr := postgCleanup()
-		fmt.Print("defer from main")
-		redisErr := redisCleanup()
-
-		if postgErr != nil {
-			logger.Error("Error during PostgreSQL cleanup:", postgErr)
-		}
-
-		if redisErr != nil {
-			logger.Error("Error during Redis cleanup:", redisErr)
-		}
+		errChain <- errors.New("get os signal" + s.String())
 	}()
 
+	errRun := <-errChain
+	logger.Error(errRun)
+
+	router.Clenup()
+	logger.Error("router cleanup: ", err)
+
+	//Закрываем коннекты
+	err = postgCleanup()
+	logger.Error("postgres cleanup: ", err)
+	err = redisCleanup()
+	logger.Error("redis cleanup: ", err)
 }

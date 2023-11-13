@@ -3,13 +3,14 @@ package http
 import (
 	"NetServDB/domain"
 	"NetServDB/logging"
+	"NetServDB/transport/http/model"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type Database interface {
-	Add(c *gin.Context, request *domain.UserRequestAdd) (int64, error)
+	Add(c *gin.Context, request *domain.Users) (int64, error)
 	Refresh(c *gin.Context) error
 }
 
@@ -26,7 +27,7 @@ func NewUserController(logger *logging.Logger, database Database) *UserControlle
 }
 
 func (uc *UserController) AddUser(c *gin.Context) {
-	var request domain.UserRequestAdd
+	var request model.UserRequestAdd
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		uc.logger.Error("invalid input format")
@@ -39,8 +40,9 @@ func (uc *UserController) AddUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	user := request.MapToDomain()
 
-	userID, err := uc.database.Add(c, &request)
+	userID, err := uc.database.Add(c, &user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
