@@ -1,7 +1,7 @@
 package service
 
 import (
-	http2 "NetServDB/domain"
+	http2 "NetServDB/transport/http/model"
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/hex"

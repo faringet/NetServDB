@@ -1,9 +1,9 @@
 package http
 
 import (
-	"NetServDB/domain"
 	"NetServDB/logging"
 	"NetServDB/service"
+	"NetServDB/transport/http/model"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -21,7 +21,7 @@ func NewHMACController(logger *logging.Logger, hmacService service.HMACService) 
 }
 
 func (hc *HMACController) SignHMACSHA512(c *gin.Context) {
-	var request domain.Ihmacsha512Request
+	var request model.Ihmacsha512Request
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		hc.logger.Error("invalid input format")

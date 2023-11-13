@@ -56,7 +56,7 @@ func (r *RouterImpl) RegisterRoutes() {
 		r.userController.TableRefresh(c)
 	})
 
-	router.Run(r.config.Port)
+	r.server = router
 
 }
 
