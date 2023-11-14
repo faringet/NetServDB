@@ -34,6 +34,9 @@ func (dr *DataBaseRepositoryImpl) TableRefresh(c *gin.Context) error {
 	}
 
 	// Мигрируем таблицу
-	dr.postgreClient.AutoMigrate(&domain.Users{})
+	err := dr.postgreClient.AutoMigrate(&domain.Users{})
+	if err != nil {
+		return err
+	}
 	return nil
 }

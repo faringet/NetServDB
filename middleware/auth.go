@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"NetServDB/config"
+	"NetServDB/ecode"
 	"NetServDB/logging"
 	"encoding/base64"
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 
 		// Проверяем заголовок Authorization на пустоту
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": ecode.ErrUnauthorized})
 			logger.Error("empty authHeader - authorization denied")
 			c.Abort()
 			return
@@ -27,7 +28,7 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 
 		// Проверяем что начинается с "Basic "
 		if !strings.HasPrefix(authHeader, "Basic ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": ecode.ErrUnauthorized})
 			logger.Error("wrong authHeader - authorization denied")
 			c.Abort()
 			return
@@ -39,7 +40,7 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 		// Раскодируем все
 		decodedCredentials, err := base64.StdEncoding.DecodeString(encodedCredentials)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": ecode.ErrUnauthorized})
 			logger.Error("decode error - authorization denied")
 			c.Abort()
 			return
@@ -51,7 +52,7 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 		// Юзер пароль
 		parts := strings.Split(credentials, ":")
 		if len(parts) != 2 {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": ecode.ErrUnauthorized})
 			logger.Error("decode error - authorization denied")
 			c.Abort()
 			return
@@ -61,7 +62,7 @@ func Authenticate(cfg *config.Config) gin.HandlerFunc {
 		username := parts[0]
 		password := parts[1]
 		if username != expectedUsername || password != expectedPassword {
-			c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": ecode.ErrUnauthorized})
 			logger.Error("wrong password or username - authorization denied")
 			c.Abort()
 			return

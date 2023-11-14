@@ -1,6 +1,7 @@
 package service
 
 import (
+	"NetServDB/ecode"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,12 +29,15 @@ func NewCacheWorker(repo RedisRepository) *CacheWorker {
 func (rs *CacheWorker) IncrementByKey(c *gin.Context, key string, value int64) (int64, error) {
 	rs.repo.SetKeyDefault(key, defaultAge)
 
+	if _, err := rs.repo.IncrBy(c, key, value); err != nil {
+		return 0, ecode.ErrWriteRedis
+	}
 	return rs.repo.IncrBy(c, key, value)
 }
 
 func (rs *CacheWorker) Refresh(c *gin.Context) error {
 	if err := rs.repo.Delete(c, keyAge); err != nil {
-		return err
+		return ecode.ErrRefreshRedis
 	}
 
 	return nil

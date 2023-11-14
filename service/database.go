@@ -2,6 +2,7 @@ package service
 
 import (
 	"NetServDB/domain"
+	"NetServDB/ecode"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +25,7 @@ func (dw *DataBaseWorker) Add(c *gin.Context, user *domain.Users) (int64, error)
 	// Вызываем метод репозитория для добавления пользователя
 	userID, err := dw.repo.AddUser(c, user)
 	if err != nil {
-		return 0, err
+		return 0, ecode.ErrWriteDB
 	}
 
 	return int64(userID), nil
@@ -32,7 +33,7 @@ func (dw *DataBaseWorker) Add(c *gin.Context, user *domain.Users) (int64, error)
 
 func (dw *DataBaseWorker) Refresh(c *gin.Context) error { //
 	if err := dw.repo.TableRefresh(c); err != nil {
-		return err
+		return ecode.ErrRefreshDB
 	}
 
 	return nil
