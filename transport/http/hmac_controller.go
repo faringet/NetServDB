@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=HMAC
 type HMAC interface {
 	SignHMACSHA512(text string, key string) (string, error)
 }
